@@ -26,7 +26,6 @@ const CLONE_LINK_REGEX = /https:\/\/(?:((?:git(?:hub|lab)\.com|git\.(?:[a-zA-Z0-
 const vencordPath = ["desktop", "equibop"].includes(basename(__dirname)) ? join(__dirname, "../") : __dirname;
 
 export async function ensurePluginsDirectory(_: any) {
-    if (!IS_DEV) return;
     try {
         await mkdir(join(vencordPath, "../src/userplugins"), { recursive: true });
     } catch(e) { }
@@ -167,7 +166,7 @@ export function initPluginInstall(_, link: string, source: string, owner: string
 
 async function build(): Promise<any> {
     return new Promise((resolve, reject) => {
-        const proc = exec("pnpm build --dev", {
+        const proc = exec("pnpm build", {
             cwd: join(vencordPath, ".."),
             shell: process.env.SHELL || process.env.ComSpec || "/bin/sh"
         });

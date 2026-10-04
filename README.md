@@ -6,6 +6,8 @@
 
 Equicord is a fork of [Vencord](https://github.com/Vendicated/Vencord), with over 300+ plugins.
 
+This fork enables the desktop Userplugin Installer in normal builds. Install or update a userplugin from **Settings → Equicord → UserPlugins**; the client compiles it automatically and then offers to refresh or restart. You do not need to run build commands for each plugin.
+
 You can join our [Discord server](https://equicord.org/discord) for commits, changes, chatting, or even support.
 
 ### Included Plugins
