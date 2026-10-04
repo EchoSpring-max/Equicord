@@ -5,7 +5,7 @@
  */
 
 import { NativeSettings } from "@main/settings";
-import { exec, spawn } from "child_process";
+import { exec, execFile, spawn } from "child_process";
 import { BrowserWindow, dialog, shell, WebContentsView } from "electron";
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { mkdir, readdir, readFile, rm } from "fs/promises";
@@ -150,9 +150,12 @@ export function initPluginInstall(_, link: string, source: string, owner: string
                         await build();
                     }
                     catch (e) {
-                        reject((e as Error).toString());
+                        await rm(join(vencordPath, "..", "src", "userplugins", repo), {
+                            recursive: true
+                        });
+                        return reject((e as Error).toString());
                     }
-                    resolve(JSON.stringify({
+                    return resolve(JSON.stringify({
                         name: meta.name,
                         native: meta.usesNative
                     }));
@@ -164,17 +167,20 @@ export function initPluginInstall(_, link: string, source: string, owner: string
     });
 }
 
-async function build(): Promise<any> {
+async function build(): Promise<void> {
     return new Promise((resolve, reject) => {
-        const proc = exec("pnpm build", {
+        execFile("node", [
+            "--require=./scripts/suppressExperimentalWarnings.js",
+            "scripts/build/build.mjs"
+        ], {
             cwd: join(vencordPath, ".."),
-            shell: process.env.SHELL || process.env.ComSpec || "/bin/sh"
-        });
-        proc.once("close", () => {
-            if (proc.exitCode !== 0) {
-                reject("Failed to build Vencord, try building from console");
-            }
-            resolve("Success");
+            maxBuffer: 10 * 1024 * 1024,
+            windowsHide: true
+        }, (error, stdout, stderr) => {
+            if (!error) return resolve();
+
+            const details = (stderr || stdout || error.message).trim();
+            reject(`Failed to build Equicord${details ? `:\n${details}` : "."}`);
         });
     });
 }
