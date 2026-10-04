@@ -31,6 +31,7 @@ import {
 
 function UserPluginsTab() {
     const rs = useSettings(["plugins.*"]);
+    const [showAddPlugin, setShowAddPlugin] = useState(false);
     const [pluginsLoaded, loadPlugins] = useState(false);
     const [plugins, setPlugins] = useState<
         {
@@ -81,6 +82,11 @@ function UserPluginsTab() {
             // @ts-ignore
             title={`UserPlugins${pluginsLoaded ? ` (${plugins.length}, ${plugins.filter(p => Vencord.Settings.plugins[p.name].enabled).length} enabled)` : ""}`}
         >
+            <div className={cl("add-plugin-toolbar")}>
+                <Button onClick={() => setShowAddPlugin(open => !open)}>
+                    {showAddPlugin ? "Cancel" : "Add Userplugin"}
+                </Button>
+            </div>
             <div className={cl("update-check-container")}>
                 {isObjectEmpty(pluginsWithUpdates) ? (
                     !updatesLoaded && (
@@ -109,73 +115,75 @@ function UserPluginsTab() {
                     </Card>
                 )}
             </div>
-            <Card className={cl("info-card")}>
-                <HeadingTertiary className={cl("install-title")}>
-                    Install Plugin
-                </HeadingTertiary>
-                <Paragraph className={cl("install-desc")}>
-                    You can install a plugin from GitHub, GitLab, Codeberg,
-                    git.nin0.dev, or plugins.nin0.dev by pasting its clone URL
-                    here.
-                </Paragraph>
-                <div className={cl("install-field")}>
-                    <CheckedTextInput
-                        onChange={t => setUrl(t)}
-                        validate={t => {
-                            const match = t.match(CLONE_LINK_REGEX);
-                            if (match) {
-                                const idpl = match.includes("plugins.nin0.dev")
+            {showAddPlugin && (
+                <Card className={cl("info-card")}>
+                    <HeadingTertiary className={cl("install-title")}>
+                        Add Userplugin
+                    </HeadingTertiary>
+                    <Paragraph className={cl("install-desc")}>
+                        Paste a Git repository URL from GitHub, GitLab,
+                        Codeberg, git.nin0.dev, or plugins.nin0.dev. Equicord
+                        will install and compile it automatically.
+                    </Paragraph>
+                    <div className={cl("install-field")}>
+                        <CheckedTextInput
+                            onChange={t => setUrl(t)}
+                            validate={t => {
+                                const match = t.match(CLONE_LINK_REGEX);
+                                if (match) {
+                                    const idpl = match.includes("plugins.nin0.dev")
+                                        ? 1
+                                        : 0;
+                                    const installed = plugins
+                                        .map(p => p.directory)
+                                        .includes(match[[3, 6][idpl]]);
+                                    if (installed) {
+                                        setValid(false);
+                                        return "Plugin already installed, update below";
+                                    }
+                                    setValid(true);
+                                    return true;
+                                } else {
+                                    setValid(false);
+                                    return "Invalid URL, read the notice above";
+                                }
+                            }}
+                            initialValue={url}
+                        />
+                    </div>
+                    <div className={cl("button-container")}>
+                        <Button
+                            disabled={!valid}
+                            className={cl("install-button")}
+                            onClick={async () => {
+                                const gitLink = url.match(CLONE_LINK_REGEX)!;
+                                const idpl = gitLink.includes("plugins.nin0.dev")
                                     ? 1
                                     : 0;
-                                const installed = plugins
-                                    .map(p => p.directory)
-                                    .includes(match[[3, 6][idpl]]);
-                                if (installed) {
-                                    setValid(false);
-                                    return "Plugin already installed, update below";
+                                try {
+                                    const { name, native } = JSON.parse(
+                                        await Native.initPluginInstall(
+                                            gitLink[0],
+                                            gitLink[[1, 4][idpl]],
+                                            gitLink[[2, 5][idpl]],
+                                            gitLink[[3, 6][idpl]],
+                                        ),
+                                    );
+                                    showInstallFinishedAlert(name, native);
+                                } catch (e: any) {
+                                    if (e.toString().includes("silentStop")) return;
+                                    Alerts.show({
+                                        title: "Install error",
+                                        body: e.toString(),
+                                    });
                                 }
-                                setValid(true);
-                                return true;
-                            } else {
-                                setValid(false);
-                                return "Invalid URL, read the notice above";
-                            }
-                        }}
-                        initialValue={url}
-                    />
-                </div>
-                <div className={cl("button-container")}>
-                    <Button
-                        disabled={!valid}
-                        className={cl("install-button")}
-                        onClick={async () => {
-                            const gitLink = url.match(CLONE_LINK_REGEX)!;
-                            const idpl = gitLink.includes("plugins.nin0.dev")
-                                ? 1
-                                : 0;
-                            try {
-                                const { name, native } = JSON.parse(
-                                    await Native.initPluginInstall(
-                                        gitLink[0],
-                                        gitLink[[1, 4][idpl]],
-                                        gitLink[[2, 5][idpl]],
-                                        gitLink[[3, 6][idpl]],
-                                    ),
-                                );
-                                showInstallFinishedAlert(name, native);
-                            } catch (e: any) {
-                                if (e.toString().includes("silentStop")) return;
-                                Alerts.show({
-                                    title: "Install error",
-                                    body: e.toString(),
-                                });
-                            }
-                        }}
-                    >
-                        Install
-                    </Button>
-                </div>
-            </Card>
+                            }}
+                        >
+                            Add Userplugin
+                        </Button>
+                    </div>
+                </Card>
+            )}
             <div className={cl("plugins-container")}>
                 {pluginsLoaded ? (
                     <div className={cl("plugins-grid")}>

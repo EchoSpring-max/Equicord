@@ -3,6 +3,12 @@
     margin-bottom: 20px;
 }
 
+.vc-userplugininstaller-add-plugin-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 10px 0;
+}
+
 .vc-userplugininstaller-install-desc {
     margin-top: 5px;
 }
